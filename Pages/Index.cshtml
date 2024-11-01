@@ -1,55 +1,41 @@
-﻿@page
+﻿@page "/"
 @model IndexModel
+@using Azure.Data.Tables;
+@using Azure;
+@inject IConfiguration Configuration
+
 @{
     ViewData["Title"] = "Home page";
+
+    var tableName = "IBASKantineMenu";
+    var connectionString = Configuration["ConnectionStrings:AzureTableStorage"];
+    TableClient tableClient = new TableClient(connectionString, tableName);
+
+    // Retrieve entities and week number
+    Pageable<TableEntity> entities = tableClient.Query<TableEntity>();
+    string weekNumber = entities.FirstOrDefault()?.PartitionKey ?? "Uge N/A"; 
 }
 
+<head>
+    <link href="/css/site.css" />
+</head>
+
 <div class="text-center">
-    <style>
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            border: 1px solid black;
-            padding: 10px;
-            text-align: center;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-    </style>
-    <h1 class="display-4">Kantinens Menu for uge 45 </h1>
+
+    <h1 class="display-4">Kantinens Menu for @weekNumber</h1>
     <table border="1" cellpadding="10" cellspacing="0">
         <tr>
             <th>Dag</th>
             <th>Varm Ret</th>
             <th>Kold Ret</th>
         </tr>
-        <tr>
-            <td>Mandag</td>
-            <td>Kylling & pasta</td>
-            <td>Smørebrød</td>
-        </tr>
-        <tr>
-            <td>Tirsdag</td>
-            <td>Græskarsuppe</td>
-            <td>Pastasalat</td>
-        </tr>
-        <tr>
-            <td>Onsdag</td>
-            <td>Frikadeller</td>
-            <td>Koldskål</td>
-        </tr>
-        <tr>
-            <td>Torsdag</td>
-            <td>Røde pølser</td>
-            <td>Røde pølser</td>
-        </tr>
-        <tr>
-            <td>Fredag</td>
-            <td>Pizza</td>
-            <td>Rugbrød med pålæg</td>
-        </tr>
+        @foreach (var entity in entities)
+        {
+            <tr>
+                <td>@entity.RowKey</td>
+                <td>@entity.GetString("Varm_ret")</td>
+                <td>@entity.GetString("Kold_ret")</td>
+            </tr>
+        }
     </table>
 </div>
