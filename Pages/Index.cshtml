@@ -32,7 +32,7 @@
         @foreach (var entity in entities)
         {
             <tr>
-                <td>@entity.RowKey</td>
+                <td>@entity.GetString("Dag")</td>
                 <td>@entity.GetString("Varm_ret")</td>
                 <td>@entity.GetString("Kold_ret")</td>
             </tr>
