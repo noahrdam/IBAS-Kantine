@@ -1,19 +1,46 @@
 ﻿@page "/"
-@model IndexModel
-@using Azure.Data.Tables;
-@using Azure;
 @inject IConfiguration Configuration
+@using Azure.Storage.Blobs
+@using Azure.Identity
+@using System.Text.Json
 
 @{
     ViewData["Title"] = "Home page";
 
-    var tableName = "IBASKantineMenu";
-    var connectionString = Configuration["ConnectionStrings:AzureTableStorage"];
-    TableClient tableClient = new TableClient(connectionString, tableName);
+    var containerName = "ibaskantinemenu"; // Replace with your actual container name
+    var blobName = "IBASKantineMenu.json"; // Assume the menu data is stored in a JSON blob
+    var weekNumber = "Uge N/A";
+    var menuItems = new List<dynamic>();
 
-    // Retrieve entities and week number
-    Pageable<TableEntity> entities = tableClient.Query<TableEntity>();
-    string weekNumber = entities.FirstOrDefault()?.PartitionKey ?? "Uge N/A"; 
+    try
+    {
+        // Initialize the BlobServiceClient using the managed identity
+        var blobServiceClient = new BlobServiceClient(new Uri($"https://ibaskantinemenu.blob.core.windows.net"), new DefaultAzureCredential());
+        var blobContainerClient = blobServiceClient.GetBlobContainerClient(containerName);
+        var blobClient = blobContainerClient.GetBlobClient(blobName);
+
+        // Read the blob content
+        using (var memoryStream = new MemoryStream())
+        {
+            blobClient.DownloadTo(memoryStream);
+            memoryStream.Position = 0; // Reset stream position
+
+            // Deserialize JSON data from blob
+            var json = JsonDocument.Parse(memoryStream);
+            if (json.RootElement.TryGetProperty("weekNumber", out var weekProperty))
+            {
+                weekNumber = weekProperty.GetString() ?? "Uge N/A";
+            }
+            if (json.RootElement.TryGetProperty("menuItems", out var itemsProperty))
+            {
+                menuItems = JsonSerializer.Deserialize<List<dynamic>>(itemsProperty.GetRawText());
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        <p>Error reading from Blob Storage: @ex.Message</p>
+    }
 }
 
 <head>
@@ -21,7 +48,6 @@
 </head>
 
 <div class="text-center">
-
     <h1 class="display-4">Kantinens Menu for @weekNumber</h1>
     <table border="1" cellpadding="10" cellspacing="0">
         <tr>
@@ -29,12 +55,12 @@
             <th>Varm Ret</th>
             <th>Kold Ret</th>
         </tr>
-        @foreach (var entity in entities)
+        @foreach (var item in menuItems)
         {
             <tr>
-                <td>@entity.GetString("Dag")</td>
-                <td>@entity.GetString("Varm_ret")</td>
-                <td>@entity.GetString("Kold_ret")</td>
+                <td>@item["Dag"]</td>
+                <td>@item["Varm_ret"]</td>
+                <td>@item["Kold_ret"]</td>
             </tr>
         }
     </table>
