@@ -15,7 +15,7 @@
     try
     {
         // Initialize the BlobServiceClient using the managed identity
-        var blobServiceClient = new BlobServiceClient(new Uri($"https://ibaskantinemenu.blob.core.windows.net"), new DefaultAzureCredential());
+        var blobServiceClient = new BlobServiceClient(new Uri($"https://ibaskantinemenu.blob.core.windows.net/ibaskantineuge45"), new DefaultAzureCredential());
         var blobContainerClient = blobServiceClient.GetBlobContainerClient(containerName);
         var blobClient = blobContainerClient.GetBlobClient(blobName);
 
@@ -40,6 +40,7 @@
     catch (Exception ex)
     {
         <p>Error reading from Blob Storage: @ex.Message</p>
+        <p>@ex.StackTrace</p>
     }
 }
 
